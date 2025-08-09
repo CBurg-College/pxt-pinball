@@ -1,34 +1,82 @@
-/**
- * COMMUNICATION       MBIT <> RPI
- * -------------       -----------
- * GATE1 CLOSED        P1   <  6
- * GATE2 CLOSED        P2   <  5
- * DATA VALID          P0   >  7
- * DATA RECEIVED       P3   <  8
- * MEDIA SELECT A      P20  >  18
- * MEDIA SELECT B      P19  >  23
- * LED SELECT A        P13  >  24
- * LED SELECT B        P12  >  25
- * LED COLOR RED       P14  >  11
- * LED COLOR GREEN     P15  >  9
- * LED COLOR BLUE      P16  >  10
- */
+const INIT = "has initialized"
+let BEGIN = false
 
-let LOW = 0
-let PIN_GATE1 = DigitalPin.P1
-let PIN_GATE2 = DigitalPin.P2
-let PIN_DVALID = DigitalPin.P0
-let PIN_DRECEIVED = DigitalPin.P3
-let PIN_MEDSELA = DigitalPin.P20
-let PIN_MEDSELB = DigitalPin.P19
-let PIN_LEDSELA = DigitalPin.P13
-let PIN_LEDSELB = DigitalPin.P12
-let PIN_LEDRED = DigitalPin.P14
-let PIN_LEDGREEN = DigitalPin.P15
-let PIN_LEDBLUE = DigitalPin.P16
-let HIGH = 1
+let GATE1 = false
+let GATE2 = false
 
-pins.setPull(PIN_DRECEIVED, PinPullMode.PullUp)
+enum COMMAND {
+    SetVideo1,  // + file name
+    SetVideo2,  // + file name
+    PlayVideo1,
+    PlayVideo2,
+    SetBackgr,  // + file name
+    ShowBackgr,
+    ColorLed1,  // + color
+    ColorLed2,  // + color
+    ColorLed3,  // + color
+    ThruGate1,
+    ThruGate2
+}
+
+const CMDSTR = [
+    "V1=",  // SetVideo1 file name
+    "V2=",  // SetVideo2 file name
+    "V1P",  // PlayVideo1
+    "V2P",  // PlayVideo2
+    "BG=",  // SetBackgr file name
+    "BGS",  // ShowBackgr,
+    "L1=",  // ColorLed1
+    "L2=",  // ColorLed2
+    "L3=",  // ColorLed3
+    "G1C",  // ThruGate1
+    "G2C"   // ThruGate2
+]
+
+serial.redirect(
+    SerialPin.P14,
+    SerialPin.P13,
+    BaudRate.BaudRate9600
+)
+
+basic.forever(function() {
+    // RPi starts by reading the serial until it
+    // receives the string INIT. Then it will
+    // echoe the INIT string which means that
+    // at both sides the serial communication has
+    // started.
+    if (BEGIN) return
+    serial.writeLine(INIT + "\n")
+
+    // Note that on MBit the 'while { pause }'
+    // halts serial reading. The 'basic.forever'
+    // does not.
+})
+
+serial.onDataReceived(serial.delimiters(Delimiters.NewLine), function () {
+    let line = serial.readLine()
+
+    // RPi starts by reading the serial until it
+    // receives the string INIT. Then it will
+    // echoe the INIT string which means that
+    // at both sides the serial communication has
+    // started.
+    if (line == INIT) BEGIN = true
+    if (!BEGIN) return
+
+    let cmd = line.substr( 0, 3)
+    let val = line.substr( 3)
+
+    if (cmd == CMDSTR[COMMAND.ThruGate1]) {
+        GATE1 = true
+        // echoe the COMMAND
+        serial.writeLine(cmd + "\n")
+    }
+    if (cmd == CMDSTR[COMMAND.ThruGate2]) {
+        GATE2 = true
+        // echo the COMMAND
+        serial.writeLine(cmd + "\n")
+    }
+})
 
 //% color="#00CC00" icon="\uf1f9"
 //% block="Pinball"
@@ -44,7 +92,7 @@ namespace CBurgPinball {
         Gate2
     }
 
-    export enum LedId {
+    export enum Led {
         //% block="led 1"
         //% block.loc.nl="led 1"
         Led1,
@@ -56,34 +104,7 @@ namespace CBurgPinball {
         Led3
     }
 
-    export enum ColorId {
-        //% block="dark"
-        //% block.loc.nl="donker"
-        Off,
-        //% block="red"
-        //% block.loc.nl="rood"
-        Red,
-        //% block="yellow"
-        //% block.loc.nl="geel"
-        Yellow,
-        //% block="green"
-        //% block.loc.nl="groen"
-        Green,
-        //% block="light blue"
-        //% block.loc.nl="lichtblauw"
-        Cyan,
-        //% block="blue"
-        //% block.loc.nl="blauw"
-        Blue,
-        //% block="purple"
-        //% block.loc.nl="paars"
-        Magenta,
-        //% block="white"
-        //% block.loc.nl="wit"
-        White
-    }
-
-    export enum MediaId {
+    export enum Media {
         //% block="video 1"
         //% block.loc.nl="video 1"
         Video1,
@@ -92,16 +113,23 @@ namespace CBurgPinball {
         Video2
     }
 
-    //% block="thru gate 2"
-    //% block.loc.nl="door poortje 2"
-    export function thruGate2(): boolean {
-        return (pins.digitalReadPin(PIN_GATE2) == HIGH)
+
+    //% block="assign file %name to the background"
+    //% block.loc.nl="wijs bestand %name toe aan de achtergrond"
+    export function setBackgrFile(name: string) {
+        let cmd = CMDSTR[COMMAND.SetBackgr]
+        serial.writeString(cmd + name + "\n")
     }
 
-    //% block="thru gate 1"
-    //% block.loc.nl="door poortje 1"
-    export function thruGate1(): boolean {
-        return (pins.digitalReadPin(PIN_GATE1) == HIGH)
+    //% block="assign file %name to %video"
+    //% block.loc.nl="wijs bestand %name toe aan %video"
+    export function setVideoFile( name: string, video: Media) {
+        let cmd: string
+        switch (video) {
+            case Media.Video1: cmd = CMDSTR[COMMAND.SetVideo1]; break;
+            case Media.Video2: cmd = CMDSTR[COMMAND.SetVideo2]; break;
+        }
+        serial.writeString( cmd + name + "\n")
     }
 
     //% block="wait %time sec"
@@ -110,109 +138,49 @@ namespace CBurgPinball {
         basic.pause(time * 1000);
     }
 
-    //% block="color %ledid %state"
-    //% block.loc.nl="kleur %ledid %state"
-    export function switchled(ledid: LedId, colorid: ColorId) {
-        // do not change media
-        pins.digitalWritePin(PIN_MEDSELA, LOW)
-        pins.digitalWritePin(PIN_MEDSELB, LOW)
-        // choose the led
-        if (ledid == LedId.Led1) {
-            pins.digitalWritePin(PIN_LEDSELA, LOW);
-            pins.digitalWritePin(PIN_LEDSELB, HIGH);
+    //% block="let %led shine %color"
+    //% block.loc.nl="laat %led %color schijnen"
+    export function setLedColor(led: Led, color: Color) {
+        let clr = rgb(color)
+        let cmd: string
+        switch (led) {
+            case Led.Led1: cmd = CMDSTR[COMMAND.ColorLed1]; break;
+            case Led.Led2: cmd = CMDSTR[COMMAND.ColorLed2]; break;
+            case Led.Led3: cmd = CMDSTR[COMMAND.ColorLed3]; break;
         }
-        if (ledid == LedId.Led2) {
-            pins.digitalWritePin(PIN_LEDSELA, HIGH);
-            pins.digitalWritePin(PIN_LEDSELB, LOW);
-        }
-        if (ledid == LedId.Led3) {
-            pins.digitalWritePin(PIN_LEDSELA, HIGH);
-            pins.digitalWritePin(PIN_LEDSELB, HIGH);
-        }
-        // set the color
-        if (colorid == ColorId.Off) {
-            pins.digitalWritePin(PIN_LEDRED, LOW);
-            pins.digitalWritePin(PIN_LEDGREEN, LOW);
-            pins.digitalWritePin(PIN_LEDBLUE, LOW);
-        }
-        if (colorid == ColorId.Red) {
-            pins.digitalWritePin(PIN_LEDRED, HIGH);
-            pins.digitalWritePin(PIN_LEDGREEN, LOW);
-            pins.digitalWritePin(PIN_LEDBLUE, LOW);
-        }
-        if (colorid == ColorId.Yellow) {
-            pins.digitalWritePin(PIN_LEDRED, HIGH);
-            pins.digitalWritePin(PIN_LEDGREEN, HIGH);
-            pins.digitalWritePin(PIN_LEDBLUE, LOW);
-        }
-        if (colorid == ColorId.Green) {
-            pins.digitalWritePin(PIN_LEDRED, LOW);
-            pins.digitalWritePin(PIN_LEDGREEN, HIGH);
-            pins.digitalWritePin(PIN_LEDBLUE, LOW);
-        }
-        if (colorid == ColorId.Cyan) {
-            pins.digitalWritePin(PIN_LEDRED, LOW);
-            pins.digitalWritePin(PIN_LEDGREEN, HIGH);
-            pins.digitalWritePin(PIN_LEDBLUE, HIGH);
-        }
-        if (colorid == ColorId.Blue) {
-            pins.digitalWritePin(PIN_LEDRED, LOW);
-            pins.digitalWritePin(PIN_LEDGREEN, LOW);
-            pins.digitalWritePin(PIN_LEDBLUE, HIGH);
-        }
-        if (colorid == ColorId.Magenta) {
-            pins.digitalWritePin(PIN_LEDRED, HIGH);
-            pins.digitalWritePin(PIN_LEDGREEN, LOW);
-            pins.digitalWritePin(PIN_LEDBLUE, HIGH);
-        }
-        if (colorid == ColorId.White) {
-            pins.digitalWritePin(PIN_LEDRED, HIGH);
-            pins.digitalWritePin(PIN_LEDGREEN, HIGH);
-            pins.digitalWritePin(PIN_LEDBLUE, HIGH);
-        }
-        // communicate to raspberry
-        pins.digitalWritePin(PIN_DVALID, HIGH);
-        while (!pins.digitalReadPin(PIN_DRECEIVED));
-        pins.digitalWritePin(PIN_DVALID, LOW);
-        basic.pause(10)
+        serial.writeString(cmd + clr.toString() + "\n")
     }
 
-    //% block="start %mediaid"
-    //% block.loc.nl="start %mediaid"
-    export function startVideo(mediaid: MediaId) {
-        // do not change leds
-        pins.digitalWritePin(PIN_LEDSELA, LOW)
-        pins.digitalWritePin(PIN_LEDSELB, LOW)
-        // choose the medium
-        if (mediaid == MediaId.Video1) {
-            pins.digitalWritePin(PIN_MEDSELA, LOW);
-            pins.digitalWritePin(PIN_MEDSELB, HIGH);
+    //% block="play %video"
+    //% block.loc.nl="speel %video af"
+    export function playVideo(video: Media) {
+        let cmd: string
+        switch (video) {
+            case Media.Video1: cmd = CMDSTR[COMMAND.PlayVideo1]; break;
+            case Media.Video2: cmd = CMDSTR[COMMAND.PlayVideo2]; break;
         }
-        else
-            if (mediaid == MediaId.Video2) {
-                pins.digitalWritePin(PIN_MEDSELA, HIGH);
-                pins.digitalWritePin(PIN_MEDSELB, LOW);
-            }
-        // communicate to raspberry
-        pins.digitalWritePin(PIN_DVALID, HIGH);
-        while (!pins.digitalReadPin(PIN_DRECEIVED));
-        pins.digitalWritePin(PIN_DVALID, LOW);
-        basic.pause(10)
+        serial.writeString(cmd + "\n")
     }
 
     //% block="show background"
     //% block.loc.nl="toon achtergrond"
     export function showBackground() {
-        // do not change leds
-        pins.digitalWritePin(PIN_LEDSELA, LOW)
-        pins.digitalWritePin(PIN_LEDSELB, LOW)
-        // choose background medium
-        pins.digitalWritePin(PIN_MEDSELA, HIGH);
-        pins.digitalWritePin(PIN_MEDSELB, HIGH);
-        // communicate to raspberry
-        pins.digitalWritePin(PIN_DVALID, HIGH);
-        while (!pins.digitalReadPin(PIN_DRECEIVED));
-        pins.digitalWritePin(PIN_DVALID, LOW);
-        basic.pause(10)
+        serial.writeString("BGS\n")
+    }
+
+    //% block="thru gate 2"
+    //% block.loc.nl="door poortje 2"
+    export function thruGate2(): boolean {
+        let state = GATE2
+        GATE2 = false
+        return state
+    }
+
+    //% block="thru gate 1"
+    //% block.loc.nl="door poortje 1"
+    export function thruGate1(): boolean {
+        let state = GATE1
+        GATE1 = false
+        return state
     }
 }
