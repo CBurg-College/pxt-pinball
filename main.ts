@@ -38,6 +38,14 @@ serial.redirect(
     BaudRate.BaudRate9600
 )
 
+basic.showLeds(`
+        # # # # #
+        # . . . #
+        . # . # .
+        # . . . #
+        # # # # #
+        `)
+
 basic.forever(function() {
     // RPi starts by reading the serial until it
     // receives the string INIT. Then it will
@@ -60,7 +68,10 @@ serial.onDataReceived(serial.delimiters(Delimiters.NewLine), function () {
     // echoe the INIT string which means that
     // at both sides the serial communication has
     // started.
-    if (line == INIT) BEGIN = true
+    if (line == INIT) {
+        BEGIN = true
+        basic.showIcon(IconNames.Yes)
+    }
     if (!BEGIN) return
 
     let cmd = line.substr( 0, 3)
