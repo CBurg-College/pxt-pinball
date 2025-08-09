@@ -45,8 +45,7 @@ basic.showLeds(`
         # . . . #
         # # # # #
         `)
-basic.pause(10000)
-
+/*
 basic.forever(function() {
     // RPi starts by reading the serial until it
     // receives the string INIT. Then it will
@@ -58,6 +57,8 @@ basic.forever(function() {
         return
     }
 })
+*/
+serial.writeLine(INIT + "\n")
 
 serial.onDataReceived(serial.delimiters(Delimiters.NewLine), function () {
     let line = serial.readLine()
