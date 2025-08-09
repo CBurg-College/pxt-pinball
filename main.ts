@@ -46,7 +46,7 @@ basic.showLeds(`
         # # # # #
         `)
 
-while (true) {
+basic.forever(function() {
     // RPi starts by reading the serial until it
     // receives the string INIT. Then it will
     // echoe the INIT string which means that
@@ -54,9 +54,9 @@ while (true) {
     // started.
     if (!BEGIN) {
         serial.writeLine(INIT + "\n")
-        break
+        return
     }
-}
+})
 
 serial.onDataReceived(serial.delimiters(Delimiters.NewLine), function () {
     let line = serial.readLine()
@@ -132,6 +132,7 @@ namespace CBurgPinball {
     //% block.loc.nl="wacht op de initialisatie"
     export function waitInit(time: number) {
         basic.forever(function() {
+            if (BEGIN) return
         })
     }
 
