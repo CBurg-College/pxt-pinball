@@ -3,8 +3,6 @@ let BEGIN = false
 
 let GATE1 = false
 let GATE2 = false
-type handler = () => void
-let foreverHandler: handler
 
 enum COMMAND {
     SetVideo1,  // + file name
@@ -48,7 +46,7 @@ basic.showLeds(`
         # # # # #
         `)
 
-basic.forever(function() {
+while (true) {
     // RPi starts by reading the serial until it
     // receives the string INIT. Then it will
     // echoe the INIT string which means that
@@ -56,14 +54,9 @@ basic.forever(function() {
     // started.
     if (!BEGIN) {
         serial.writeLine(INIT + "\n")
-        return
+        break
     }
-
-    // MBit 'forever' does not wait for BEGIN.
-    // Therefore the programmer should not use it
-    // and instead declare a foreverHandler in onForever.
-    if (foreverHandler) foreverHandler()
-})
+}
 
 serial.onDataReceived(serial.delimiters(Delimiters.NewLine), function () {
     let line = serial.readLine()
@@ -135,11 +128,11 @@ namespace CBurgPinball {
         basic.pause(time * 1000);
     }
 
-    //% color="#FFCC00"
-    //% block="execute forever"
-    //% block.loc.nl="doe steeds"
-    export function onForever(programmableCode: () => void): void {
-        foreverHandler = programmableCode;
+    //% block="wait for the initialization"
+    //% block.loc.nl="wacht op de initialisatie"
+    export function waitInit(time: number) {
+        basic.forever(function() {
+        })
     }
 
     //% block="assign file %name to the background"
