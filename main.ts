@@ -45,6 +45,7 @@ basic.showLeds(`
         # . . . #
         # # # # #
         `)
+basic.pause(10000)
 
 basic.forever(function() {
     // RPi starts by reading the serial until it
