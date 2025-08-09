@@ -3,6 +3,8 @@ let BEGIN = false
 
 let GATE1 = false
 let GATE2 = false
+type handler = () => void
+let foreverHandler: handler
 
 enum COMMAND {
     SetVideo1,  // + file name
@@ -52,12 +54,15 @@ basic.forever(function() {
     // echoe the INIT string which means that
     // at both sides the serial communication has
     // started.
-    if (BEGIN) return
-    serial.writeLine(INIT + "\n")
+    if (!BEGIN) {
+        serial.writeLine(INIT + "\n")
+        return
+    }
 
-    // Note that on MBit the 'while { pause }'
-    // halts serial reading. The 'basic.forever'
-    // does not.
+    // MBit 'forever' does not wait for BEGIN.
+    // Therefore the programmer should not use it
+    // and instead declare a foreverHandler in onForever.
+    if (foreverHandler) foreverHandler()
 })
 
 serial.onDataReceived(serial.delimiters(Delimiters.NewLine), function () {
@@ -124,6 +129,18 @@ namespace CBurgPinball {
         Video2
     }
 
+    //% block="wait %time sec"
+    //% block.loc.nl="wacht %time sec"
+    export function wait(time: number) {
+        basic.pause(time * 1000);
+    }
+
+    //% color="#FFCC00"
+    //% block="execute forever"
+    //% block.loc.nl="doe steeds"
+    export function onForever(programmableCode: () => void): void {
+        foreverHandler = programmableCode;
+    }
 
     //% block="assign file %name to the background"
     //% block.loc.nl="wijs bestand %name toe aan de achtergrond"
@@ -141,12 +158,6 @@ namespace CBurgPinball {
             case Media.Video2: cmd = CMDSTR[COMMAND.SetVideo2]; break;
         }
         serial.writeString( cmd + name + "\n")
-    }
-
-    //% block="wait %time sec"
-    //% block.loc.nl="wacht %time sec"
-    export function wait(time: number) {
-        basic.pause(time * 1000);
     }
 
     //% block="let %led shine %color"
