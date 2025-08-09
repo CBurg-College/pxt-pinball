@@ -130,7 +130,7 @@ namespace CBurgPinball {
 
     //% block="wait for the initialization"
     //% block.loc.nl="wacht op de initialisatie"
-    export function waitInit(time: number) {
+    export function waitInit() {
         basic.forever(function() {
             if (BEGIN) return
         })
