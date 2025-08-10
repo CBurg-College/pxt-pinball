@@ -54,6 +54,7 @@ basic.forever(function() {
     // started.
     if (!BEGIN) {
         serial.writeLine(INIT + "\n")
+        basic.pause(200)
         return
     }
 })
