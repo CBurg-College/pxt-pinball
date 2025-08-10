@@ -59,6 +59,7 @@ basic.forever(function() {
     }
 })
 
+/*
 serial.onDataReceived(serial.delimiters(Delimiters.NewLine), function () {
     let line = serial.readLine()
 
@@ -87,6 +88,7 @@ serial.onDataReceived(serial.delimiters(Delimiters.NewLine), function () {
         serial.writeLine(cmd + "\n")
     }
 })
+*/
 
 //% color="#00CC00" icon="\uf1f9"
 //% block="Pinball"
