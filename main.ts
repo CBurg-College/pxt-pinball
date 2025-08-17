@@ -1,6 +1,3 @@
-const INIT = "has initialized"
-let BEGIN = false
-
 let GATE1 = false
 let GATE2 = false
 
@@ -19,76 +16,43 @@ enum COMMAND {
 }
 
 const CMDSTR = [
-    "V1=",  // SetVideo1 file name
-    "V2=",  // SetVideo2 file name
-    "V1P",  // PlayVideo1
-    "V2P",  // PlayVideo2
-    "BG=",  // SetBackgr file name
-    "BGS",  // ShowBackgr,
-    "L1=",  // ColorLed1
-    "L2=",  // ColorLed2
-    "L3=",  // ColorLed3
-    "G1C",  // ThruGate1
-    "G2C"   // ThruGate2
+    "V1",  // SetVideo1 file name
+    "V2",  // SetVideo2 file name
+    "P1",  // PlayVideo1
+    "P2",  // PlayVideo2
+    "BG=", // SetBackgr file name
+    "PB",  // ShowBackgr,
+    "L1",  // ColorLed1
+    "L2",  // ColorLed2
+    "L3",  // ColorLed3
+    "G1",  // ThruGate1
+    "G2"   // ThruGate2
 ]
 
-serial.redirect(
-    SerialPin.P14,
-    SerialPin.P13,
-    BaudRate.BaudRate9600
+type handler = () => void
+let gate1Handler: handler
+let gate2Handler: handler
+
+basic.showIcon(IconNames.Heart)
+let eserial = new ESerial
+eserial.setPins(DigitalPin.P2,     // GPIO 4
+    DigitalPin.P12,    // GPIO 10
+    DigitalPin.P13,    // GPIO 9
+    DigitalPin.P14,    // GPIO 11
+    DigitalPin.P15,    // GPIO 19
+    DigitalPin.P16     // GPIO 26
 )
+basic.showIcon(IconNames.Yes)
 
-basic.showLeds(`
-        # # # # #
-        # . . . #
-        . # . # .
-        # . . . #
-        # # # # #
-        `)
-
-basic.forever(function() {
-    // RPi starts by reading the serial until it
-    // receives the string INIT. Then it will
-    // echoe the INIT string which means that
-    // at both sides the serial communication has
-    // started.
-    if (!BEGIN) {
-        serial.writeLine(INIT + "\n")
-        basic.pause(500)
-        return
+basic.forever(function () {
+    if (eserial.available()) {
+        let cmd = eserial.read()
+        if ((cmd == CMDSTR[COMMAND.ThruGate1]) && gate1Handler)
+            gate1Handler()
+        if ((cmd == CMDSTR[COMMAND.ThruGate2]) && gate2Handler)
+            gate2Handler()
     }
 })
-
-/*
-serial.onDataReceived(serial.delimiters(Delimiters.NewLine), function () {
-    let line = serial.readLine()
-
-    // RPi starts by reading the serial until it
-    // receives the string INIT. Then it will
-    // echoe the INIT string which means that
-    // at both sides the serial communication has
-    // started.
-    if (line == INIT) {
-        BEGIN = true
-        basic.showIcon(IconNames.Yes)
-    }
-    if (!BEGIN) return
-
-    let cmd = line.substr( 0, 3)
-    let val = line.substr( 3)
-
-    if (cmd == CMDSTR[COMMAND.ThruGate1]) {
-        GATE1 = true
-        // echoe the COMMAND
-        serial.writeLine(cmd + "\n")
-    }
-    if (cmd == CMDSTR[COMMAND.ThruGate2]) {
-        GATE2 = true
-        // echo the COMMAND
-        serial.writeLine(cmd + "\n")
-    }
-})
-*/
 
 //% color="#00CC00" icon="\uf1f9"
 //% block="Pinball"
@@ -125,25 +89,11 @@ namespace CBurgPinball {
         Video2
     }
 
-    //% block="wait %time sec"
-    //% block.loc.nl="wacht %time sec"
-    export function wait(time: number) {
-        basic.pause(time * 1000);
-    }
-
-    //% block="wait for the initialization"
-    //% block.loc.nl="wacht op de initialisatie"
-    export function waitInit() {
-        basic.forever(function() {
-            if (BEGIN) return
-        })
-    }
-
     //% block="assign file %name to the background"
     //% block.loc.nl="wijs bestand %name toe aan de achtergrond"
     export function setBackgrFile(name: string) {
         let cmd = CMDSTR[COMMAND.SetBackgr]
-        serial.writeString(cmd + name + "\n")
+        eserial.write(cmd + name)
     }
 
     //% block="assign file %name to %video"
@@ -154,7 +104,7 @@ namespace CBurgPinball {
             case Media.Video1: cmd = CMDSTR[COMMAND.SetVideo1]; break;
             case Media.Video2: cmd = CMDSTR[COMMAND.SetVideo2]; break;
         }
-        serial.writeString( cmd + name + "\n")
+        eserial.write( cmd + name)
     }
 
     //% block="let %led shine %color"
@@ -167,7 +117,7 @@ namespace CBurgPinball {
             case Led.Led2: cmd = CMDSTR[COMMAND.ColorLed2]; break;
             case Led.Led3: cmd = CMDSTR[COMMAND.ColorLed3]; break;
         }
-        serial.writeString(cmd + clr.toString() + "\n")
+        eserial.write(cmd + clr.toString())
     }
 
     //% block="play %video"
@@ -178,28 +128,22 @@ namespace CBurgPinball {
             case Media.Video1: cmd = CMDSTR[COMMAND.PlayVideo1]; break;
             case Media.Video2: cmd = CMDSTR[COMMAND.PlayVideo2]; break;
         }
-        serial.writeString(cmd + "\n")
+        eserial.write(cmd)
     }
 
     //% block="show background"
     //% block.loc.nl="toon achtergrond"
     export function showBackground() {
-        serial.writeString("BGS\n")
+        eserial.write(CMDSTR[COMMAND.ShowBackgr])
     }
 
-    //% block="thru gate 2"
-    //% block.loc.nl="door poortje 2"
-    export function thruGate2(): boolean {
-        let state = GATE2
-        GATE2 = false
-        return state
-    }
-
-    //% block="thru gate 1"
-    //% block.loc.nl="door poortje 1"
-    export function thruGate1(): boolean {
-        let state = GATE1
-        GATE1 = false
-        return state
+    //% color="#FFCC00"
+    //% block="when the ball goes through %gate"
+    //% block.loc.nl="wanneer de bal door %gate gaat"
+    export function onGate(gate: Gate, programmableCode: () => void): void {
+        switch (gate) {
+            case Gate.Gate1: gate1Handler = programmableCode; break;
+            case Gate.Gate2: gate2Handler = programmableCode; break;
+        }
     }
 }
