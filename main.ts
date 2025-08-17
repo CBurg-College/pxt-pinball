@@ -20,7 +20,7 @@ const CMDSTR = [
     "V2",  // SetVideo2 file name
     "P1",  // PlayVideo1
     "P2",  // PlayVideo2
-    "BG=", // SetBackgr file name
+    "BG", // SetBackgr file name
     "PB",  // ShowBackgr,
     "L1",  // ColorLed1
     "L2",  // ColorLed2
@@ -35,12 +35,13 @@ let gate2Handler: handler
 
 basic.showIcon(IconNames.Heart)
 let eserial = new ESerial
-eserial.setPins(DigitalPin.P2,     // GPIO 4
-    DigitalPin.P12,    // GPIO 10
-    DigitalPin.P13,    // GPIO 9
-    DigitalPin.P14,    // GPIO 11
-    DigitalPin.P15,    // GPIO 19
-    DigitalPin.P16     // GPIO 26
+eserial.setPins(
+    DigitalPin.P2,     // RPI GPIO 4
+    DigitalPin.P12,    // RPI GPIO 10
+    DigitalPin.P13,    // RPI GPIO 9
+    DigitalPin.P14,    // RPI GPIO 11
+    DigitalPin.P15,    // RPI GPIO 19
+    DigitalPin.P16     // RPI GPIO 26
 )
 basic.showIcon(IconNames.Yes)
 
