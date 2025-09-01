@@ -34,8 +34,7 @@ let gate1Handler: handler
 let gate2Handler: handler
 
 basic.showIcon(IconNames.Heart)
-let eserial = new ESerial
-eserial.setPins(
+ESerial.setPins(
     DigitalPin.P2,     // RPI GPIO 4
     DigitalPin.P12,    // RPI GPIO 10
     DigitalPin.P13,    // RPI GPIO 9
@@ -46,8 +45,8 @@ eserial.setPins(
 basic.showIcon(IconNames.Yes)
 
 basic.forever(function () {
-    if (eserial.available()) {
-        let cmd = eserial.read()
+    if (ESerial.available()) {
+        let cmd = ESerial.read()
         if ((cmd == CMDSTR[COMMAND.ThruGate1]) && gate1Handler)
             gate1Handler()
         if ((cmd == CMDSTR[COMMAND.ThruGate2]) && gate2Handler)
@@ -94,7 +93,7 @@ namespace CBurgPinball {
     //% block.loc.nl="wijs bestand %name toe aan de achtergrond"
     export function setBackgrFile(name: string) {
         let cmd = CMDSTR[COMMAND.SetBackgr]
-        eserial.write(cmd + name)
+        ESerial.write(cmd + name)
     }
 
     //% block="assign file %name to %video"
@@ -105,20 +104,20 @@ namespace CBurgPinball {
             case Media.Video1: cmd = CMDSTR[COMMAND.SetVideo1]; break;
             case Media.Video2: cmd = CMDSTR[COMMAND.SetVideo2]; break;
         }
-        eserial.write( cmd + name)
+        ESerial.write( cmd + name)
     }
 
     //% block="let %led shine %color"
     //% block.loc.nl="laat %led %color schijnen"
-    export function setLedColor(led: Led, color: Color) {
-        let clr = rgb(color)
+    export function ledColor(led: Led, color: Color) {
+        let clr = fromColor(color)
         let cmd: string
         switch (led) {
             case Led.Led1: cmd = CMDSTR[COMMAND.ColorLed1]; break;
             case Led.Led2: cmd = CMDSTR[COMMAND.ColorLed2]; break;
             case Led.Led3: cmd = CMDSTR[COMMAND.ColorLed3]; break;
         }
-        eserial.write(cmd + clr.toString())
+        ESerial.write(cmd + clr.toString())
     }
 
     //% block="play %video"
@@ -129,22 +128,22 @@ namespace CBurgPinball {
             case Media.Video1: cmd = CMDSTR[COMMAND.PlayVideo1]; break;
             case Media.Video2: cmd = CMDSTR[COMMAND.PlayVideo2]; break;
         }
-        eserial.write(cmd)
+        ESerial.write(cmd)
     }
 
     //% block="show background"
     //% block.loc.nl="toon achtergrond"
     export function showBackground() {
-        eserial.write(CMDSTR[COMMAND.ShowBackgr])
+        ESerial.write(CMDSTR[COMMAND.ShowBackgr])
     }
 
     //% color="#FFCC00"
     //% block="when the ball goes through %gate"
     //% block.loc.nl="wanneer de bal door %gate gaat"
-    export function onGate(gate: Gate, programmableCode: () => void): void {
+    export function onGate(gate: Gate, code: () => void): void {
         switch (gate) {
-            case Gate.Gate1: gate1Handler = programmableCode; break;
-            case Gate.Gate2: gate2Handler = programmableCode; break;
+            case Gate.Gate1: gate1Handler = code; break;
+            case Gate.Gate2: gate2Handler = code; break;
         }
     }
 }
